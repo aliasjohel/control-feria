@@ -1,0 +1,8 @@
+.card { border-radius: 16px; }
+.table td, .table th { vertical-align: middle; }
+
+/* resaltado stock bajo */
+.low-stock {
+  border: 1px solid rgba(255,0,0,.35);
+  background: rgba(255,0,0,.08);
+}
