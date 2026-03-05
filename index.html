@@ -45,7 +45,7 @@
                 <input id="lowStock" class="form-control form-control-sm bg-dark text-light border-secondary"
                        type="number" min="0" step="1" value="3" style="max-width:90px;">
               </div>
-              <button id="btnUndo" class="btn btn-sm btn-outline-info">Deshacer última venta</button>
+              <button id="undoBtn" type="button" class="btn btn-sm btn-outline-light">Deshacer última venta</button>
             </div>
           </div>
         </div>
@@ -71,7 +71,7 @@
                 <input id="pStock" class="form-control form-control-sm" type="number" min="0" step="1" placeholder="Stock" required />
               </div>
               <div class="col-6 col-md-1 d-grid">
-                <button class="btn btn-sm btn-primary" type="submit">+</button>
+                <button id="add-product" class="btn btn-sm btn-primary" type="button">+</button>
               </div>
             </form>
 
@@ -95,7 +95,7 @@
                     <th class="text-end">Acciones</th>
                   </tr>
                 </thead>
-                <tbody id="productsTbody"></tbody>
+                <tbody id="products-body"></tbody>
               </table>
             </div>
 
@@ -117,14 +117,14 @@
                 <form id="saleForm" class="row g-2 align-items-end">
                   <div class="col-12 col-md-7">
                     <label class="form-label text-secondary mb-1">Producto</label>
-                    <select id="saleProduct" class="form-select form-select-sm" required></select>
+                    <select id="sale-product" class="form-select form-select-sm" required></select>
                   </div>
                   <div class="col-6 col-md-3">
                     <label class="form-label text-secondary mb-1">Cantidad</label>
-                    <input id="saleQty" class="form-control form-control-sm" type="number" min="1" step="1" value="1" required />
+                    <input id="sale-qty" class="form-control form-control-sm" type="number" min="1" step="1" value="1" required />
                   </div>
                   <div class="col-6 col-md-2 d-grid">
-                    <button class="btn btn-sm btn-success" type="submit">Vender</button>
+                    <button id="sell-btn" class="btn btn-sm btn-success" type="submit">Vender</button>
                   </div>
                 </form>
               </div>
@@ -135,11 +135,11 @@
                 <form id="restockForm" class="row g-2 align-items-end">
                   <div class="col-12 col-md-7">
                     <label class="form-label text-secondary mb-1">Producto</label>
-                    <select id="restockProduct" class="form-select form-select-sm" required></select>
+                    <select id="restock-product" class="form-select form-select-sm" required></select>
                   </div>
                   <div class="col-6 col-md-3">
                     <label class="form-label text-secondary mb-1">Cantidad</label>
-                    <input id="restockQty" class="form-control form-control-sm" type="number" min="1" step="1" value="1" required />
+                    <input id="restock-qty" class="form-control form-control-sm" type="number" min="1" step="1" value="1" required />
                   </div>
                   <div class="col-6 col-md-2 d-grid">
                     <button class="btn btn-sm btn-outline-light" type="submit">Sumar</button>
