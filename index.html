@@ -39,6 +39,10 @@
               <div class="text-secondary small">Total vendido</div>
               <div id="soldTotal" class="fw-semibold">$0</div>
             </div>
+            <div>
+              <div class="text-secondary small">Producto más vendido</div>
+              <div id="topProduct" class="fw-semibold">—</div>
+            </div>
             <div class="d-flex align-items-end gap-2">
               <div>
                 <div class="text-secondary small">Stock bajo (≤)</div>
@@ -129,28 +133,29 @@
                 </form>
               </div>
 
-            <!-- Ingreso de mercadería -->
-<div class="col-12">
-  <h3 class="h6 text-uppercase text-secondary mb-2">Ingreso de mercadería</h3>
-  <form id="restockForm" class="row g-2 align-items-end">
-    <div class="col-12">
-      <label class="form-label text-secondary mb-1">Buscar producto</label>
-      <input id="restock-search" class="form-control form-control-sm" placeholder="Buscar por nombre o código..." />
-    </div>
+              <!-- Ingreso de mercadería -->
+              <div class="col-12">
+                <h3 class="h6 text-uppercase text-secondary mb-2">Ingreso de mercadería</h3>
+                <form id="restockForm" class="row g-2 align-items-end">
+                  <div class="col-12">
+                    <label class="form-label text-secondary mb-1">Buscar producto</label>
+                    <input id="restock-search" class="form-control form-control-sm" placeholder="Buscar por nombre o código..." />
+                  </div>
 
-    <div class="col-12 col-md-7">
-      <label class="form-label text-secondary mb-1">Producto</label>
-      <select id="restock-product" class="form-select form-select-sm" required></select>
-    </div>
-    <div class="col-6 col-md-3">
-      <label class="form-label text-secondary mb-1">Cantidad</label>
-      <input id="restock-qty" class="form-control form-control-sm" type="number" min="1" step="1" value="1" required />
-    </div>
-    <div class="col-6 col-md-2 d-grid">
-      <button class="btn btn-sm btn-outline-light" type="submit">Sumar</button>
-    </div>
-  </form>
-</div>
+                  <div class="col-12 col-md-7">
+                    <label class="form-label text-secondary mb-1">Producto</label>
+                    <select id="restock-product" class="form-select form-select-sm" required></select>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label text-secondary mb-1">Cantidad</label>
+                    <input id="restock-qty" class="form-control form-control-sm" type="number" min="1" step="1" value="1" required />
+                  </div>
+                  <div class="col-6 col-md-2 d-grid">
+                    <button class="btn btn-sm btn-outline-light" type="submit">Sumar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
 
             <hr class="border-secondary my-3" />
 
@@ -170,10 +175,72 @@
             </div>
 
             <div class="d-flex gap-2 flex-wrap mt-3">
-  <button id="btnExportCSV" class="btn btn-sm btn-outline-light" type="button">Exportar ventas (CSV)</button>
-  <button id="btnWhatsApp" class="btn btn-sm btn-success" type="button">Enviar resumen por WhatsApp</button>
-</div>
+              <button id="btnExportCSV" class="btn btn-sm btn-outline-light" type="button">Exportar ventas (CSV)</button>
+              <button id="btnWhatsApp" class="btn btn-sm btn-success" type="button">Enviar resumen por WhatsApp</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <!-- HISTORIAL -->
+      <div class="col-12">
+        <div class="card bg-black border-secondary">
+          <div class="card-body">
+            <h2 class="h5 mb-3">Historial por fecha</h2>
+
+            <div class="row g-2 align-items-end">
+              <div class="col-12 col-md-4">
+                <label class="form-label text-secondary mb-1">Elegir fecha</label>
+                <input id="historyDate" type="date" class="form-control form-control-sm">
+              </div>
+              <div class="col-6 col-md-2 d-grid">
+                <button id="btnLoadHistory" class="btn btn-sm btn-outline-info" type="button">Buscar</button>
+              </div>
+              <div class="col-6 col-md-2 d-grid">
+                <button id="btnTodayHistory" class="btn btn-sm btn-outline-light" type="button">Ver hoy</button>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-3">
+              <div class="col-12 col-md-4">
+                <div class="border border-secondary rounded p-3 h-100">
+                  <div class="text-secondary small">Fecha consultada</div>
+                  <div id="historyLabel" class="fw-semibold">—</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="border border-secondary rounded p-3 h-100">
+                  <div class="text-secondary small">Items vendidos</div>
+                  <div id="historyItems" class="fw-semibold">0</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <div class="border border-secondary rounded p-3 h-100">
+                  <div class="text-secondary small">Total vendido</div>
+                  <div id="historyTotal" class="fw-semibold">$0</div>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="border border-secondary rounded p-3 h-100">
+                  <div class="text-secondary small">Producto más vendido</div>
+                  <div id="historyTopProduct" class="fw-semibold">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-responsive mt-3">
+              <table class="table table-dark table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Hora</th>
+                    <th>Producto</th>
+                    <th class="text-end">Cant.</th>
+                    <th class="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTbody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

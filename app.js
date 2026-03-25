@@ -17,6 +17,7 @@ function saveJSON(key, value) {
 // ===== Estado =====
 let products = loadJSON("products", []);
 let salesToday = loadJSON("salesToday", []);
+let salesHistory = loadJSON("salesHistory", {});
 let lastSale = null;
 
 // ===== Elementos =====
@@ -42,10 +43,10 @@ const el = {
   undoBtn: document.querySelector("#undoBtn"),
 
   // Ingreso mercadería
-restockSearch: document.querySelector("#restock-search"),
-restockProduct: document.querySelector("#restock-product"),
-restockQty: document.querySelector("#restock-qty"),
-restockForm: document.querySelector("#restockForm"),
+  restockSearch: document.querySelector("#restock-search"),
+  restockProduct: document.querySelector("#restock-product"),
+  restockQty: document.querySelector("#restock-qty"),
+  restockForm: document.querySelector("#restockForm"),
 
   // Ventas de hoy
   salesTbody: document.querySelector("#salesTbody"),
@@ -54,12 +55,23 @@ restockForm: document.querySelector("#restockForm"),
   todayLabel: document.querySelector("#todayLabel"),
   soldItems: document.querySelector("#soldItems"),
   soldTotal: document.querySelector("#soldTotal"),
+  topProduct: document.querySelector("#topProduct"),
+
+  // Historial
+  historyDate: document.querySelector("#historyDate"),
+  loadHistoryBtn: document.querySelector("#btnLoadHistory"),
+  todayHistoryBtn: document.querySelector("#btnTodayHistory"),
+  historyLabel: document.querySelector("#historyLabel"),
+  historyItems: document.querySelector("#historyItems"),
+  historyTotal: document.querySelector("#historyTotal"),
+  historyTopProduct: document.querySelector("#historyTopProduct"),
+  historyTbody: document.querySelector("#historyTbody"),
 
   // Otros
   lowStockInput: document.querySelector("#lowStock"),
   newDayBtn: document.querySelector("#btnNewDay"),
   clearAllBtn: document.querySelector("#btnResetAll"),
-    exportBtn: document.querySelector("#btnExportCSV"),
+  exportBtn: document.querySelector("#btnExportCSV"),
   whatsappBtn: document.querySelector("#btnWhatsApp"),
 };
 
@@ -76,14 +88,66 @@ function normalize(txt) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+// ===== Fecha =====
+function getTodayKey() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("es-AR", {
+    style: "currency",
+    currency: "ARS",
+  });
+}
+
+function formatDateLabel(dateKey) {
+  if (!dateKey) return "—";
+
+  const [year, month, day] = dateKey.split("-");
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+  return date.toLocaleDateString("es-AR", {
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
+// ===== Estadísticas =====
+function getTopProduct(salesArray) {
+  if (!salesArray.length) return "—";
+
+  const map = {};
+
+  salesArray.forEach((s) => {
+    const name = s.product || "Sin nombre";
+    map[name] = (map[name] || 0) + Number(s.qty || 0);
+  });
+
+  let topName = "—";
+  let topQty = 0;
+
+  for (const [name, qty] of Object.entries(map)) {
+    if (qty > topQty) {
+      topName = name;
+      topQty = qty;
+    }
+  }
+
+  return `${topName} (${topQty})`;
+}
+
 // ===== Selects =====
 function updateSelects() {
-  // Select de venta: todos los productos
   el.saleProduct.innerHTML = products
     .map((p, i) => `<option value="${i}">${p.name}</option>`)
     .join("");
 
-  // Select de ingreso: filtrado por buscador
   const q = normalize(el.restockSearch?.value || "");
 
   const filtered = products
@@ -98,31 +162,23 @@ function updateSelects() {
 
   el.restockProduct.innerHTML = filtered
     .map(
-      (p) =>
-        `<option value="${p.originalIndex}">${p.name}${p.code ? ` (${p.code})` : ""}</option>`
+      (p) => `<option value="${p.originalIndex}">${p.name}${p.code ? ` (${p.code})` : ""}</option>`
     )
     .join("");
 }
 
-// ===== Resumen (Fecha / Items / Total) =====
+// ===== Resumen (Fecha / Items / Total / Top producto) =====
 function renderSummary() {
-  const now = new Date();
+  const todayKey = getTodayKey();
 
-  el.todayLabel.textContent = now.toLocaleDateString("es-AR", {
-    weekday: "short",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  el.todayLabel.textContent = formatDateLabel(todayKey);
 
   const items = salesToday.reduce((acc, s) => acc + Number(s.qty || 0), 0);
   const total = salesToday.reduce((acc, s) => acc + Number(s.total || 0), 0);
 
   el.soldItems.textContent = String(items);
-  el.soldTotal.textContent = total.toLocaleString("es-AR", {
-    style: "currency",
-    currency: "ARS",
-  });
+  el.soldTotal.textContent = formatCurrency(total);
+  el.topProduct.textContent = getTopProduct(salesToday);
 }
 
 // ===== Render Productos con filtro + stock bajo =====
@@ -148,7 +204,7 @@ function applyFiltersAndRender() {
     tr.innerHTML = `
       <td>${p.name}</td>
       <td>${p.code || ""}</td>
-      <td class="text-end">$${Number(p.price).toFixed(2)}</td>
+      <td class="text-end">${formatCurrency(p.price)}</td>
       <td class="text-end fw-semibold">${p.stock}</td>
       <td class="text-end">
         <button class="btn btn-sm btn-outline-danger" data-del="${i}">Eliminar</button>
@@ -172,12 +228,51 @@ function renderSales() {
       <td>${s.time}</td>
       <td>${s.product}</td>
       <td class="text-end">${s.qty}</td>
-      <td class="text-end">$${Number(s.total).toFixed(2)}</td>
+      <td class="text-end">${formatCurrency(s.total)}</td>
     `;
     el.salesTbody.appendChild(tr);
   });
 
   renderSummary();
+}
+
+// ===== Render Historial =====
+function renderHistoryByDate(dateKey) {
+  el.historyTbody.innerHTML = "";
+
+  const list = dateKey === getTodayKey()
+    ? salesToday
+    : (salesHistory[dateKey] || []);
+
+  el.historyLabel.textContent = formatDateLabel(dateKey);
+
+  const items = list.reduce((acc, s) => acc + Number(s.qty || 0), 0);
+  const total = list.reduce((acc, s) => acc + Number(s.total || 0), 0);
+
+  el.historyItems.textContent = String(items);
+  el.historyTotal.textContent = formatCurrency(total);
+  el.historyTopProduct.textContent = getTopProduct(list);
+
+  list.forEach((s) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.time}</td>
+      <td>${s.product}</td>
+      <td class="text-end">${s.qty}</td>
+      <td class="text-end">${formatCurrency(s.total)}</td>
+    `;
+    el.historyTbody.appendChild(tr);
+  });
+}
+
+// ===== Guardar día en historial =====
+function saveCurrentDayToHistory() {
+  const todayKey = getTodayKey();
+
+  if (!salesToday.length) return;
+
+  salesHistory[todayKey] = [...salesToday];
+  saveJSON("salesHistory", salesHistory);
 }
 
 // ===== Listeners filtro =====
@@ -235,7 +330,11 @@ el.saleForm.addEventListener("submit", (e) => {
   products[idx].stock -= qty;
 
   const sale = {
-    time: new Date().toLocaleTimeString(),
+    time: new Date().toLocaleTimeString("es-AR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
     product: products[idx].name,
     qty,
     total: qty * products[idx].price,
@@ -248,6 +347,7 @@ el.saleForm.addEventListener("submit", (e) => {
 
   applyFiltersAndRender();
   renderSales();
+  renderHistoryByDate(getTodayKey());
 });
 
 // ===== Deshacer última venta =====
@@ -261,6 +361,7 @@ el.undoBtn.addEventListener("click", () => {
 
   applyFiltersAndRender();
   renderSales();
+  renderHistoryByDate(getTodayKey());
 
   lastSale = null;
 });
@@ -281,14 +382,20 @@ el.restockForm.addEventListener("submit", (e) => {
 
   applyFiltersAndRender();
 });
+
 // ===== Nuevo día =====
 el.newDayBtn.addEventListener("click", () => {
+  if (salesToday.length) {
+    saveCurrentDayToHistory();
+  }
+
   salesToday = [];
   lastSale = null;
 
   saveJSON("salesToday", salesToday);
 
-  renderSales();      // actualiza resumen también
+  renderSales();
+  renderHistoryByDate(getTodayKey());
 });
 
 // ===== Borrar todo =====
@@ -297,13 +404,16 @@ el.clearAllBtn.addEventListener("click", () => {
 
   products = [];
   salesToday = [];
+  salesHistory = {};
   lastSale = null;
 
   saveJSON("products", products);
   saveJSON("salesToday", salesToday);
+  saveJSON("salesHistory", salesHistory);
 
   applyFiltersAndRender();
   renderSales();
+  renderHistoryByDate(getTodayKey());
 });
 
 // ===== Exportar CSV =====
@@ -329,55 +439,65 @@ function exportSalesCSV() {
   URL.revokeObjectURL(url);
 }
 
-el.exportBtn.addEventListener("click", exportSalesCSV);
-
-el.whatsappBtn.addEventListener("click", sendSalesToWhatsApp);
-
+// ===== WhatsApp estilo ticket =====
 function sendSalesToWhatsApp() {
   if (!salesToday.length) {
     alert("No hay ventas cargadas hoy para enviar.");
     return;
   }
 
-  const now = new Date();
-  const fecha = now.toLocaleDateString("es-AR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-
+  const fecha = formatDateLabel(getTodayKey());
   const items = salesToday.reduce((acc, s) => acc + Number(s.qty || 0), 0);
   const total = salesToday.reduce((acc, s) => acc + Number(s.total || 0), 0);
+  const top = getTopProduct(salesToday);
 
   const detalle = salesToday
     .map((s) => {
-      const totalLinea = Number(s.total || 0).toLocaleString("es-AR", {
-        style: "currency",
-        currency: "ARS",
-      });
-
-      return `• ${s.product} x${s.qty} = ${totalLinea}`;
+      return `• ${s.product}\n  Cant: ${s.qty} | Total: ${formatCurrency(s.total)}`;
     })
-    .join("\n");
-
-  const totalFormateado = total.toLocaleString("es-AR", {
-    style: "currency",
-    currency: "ARS",
-  });
+    .join("\n\n");
 
   const mensaje =
-`*Ventas del día*
-Fecha: ${fecha}
+`🧾 *CIERRE DEL DÍA*
+📅 ${fecha}
 
+------------------------------
 ${detalle}
+------------------------------
 
-*Total de items:* ${items}
-*Total vendido:* ${totalFormateado}`;
+📦 *Items vendidos:* ${items}
+🏆 *Más vendido:* ${top}
+💰 *Total vendido:* ${formatCurrency(total)}`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
   window.location.href = url;
 }
 
+// ===== Historial botones =====
+el.loadHistoryBtn.addEventListener("click", () => {
+  const dateKey = el.historyDate.value;
+  if (!dateKey) {
+    alert("Elegí una fecha.");
+    return;
+  }
+
+  renderHistoryByDate(dateKey);
+});
+
+el.todayHistoryBtn.addEventListener("click", () => {
+  const todayKey = getTodayKey();
+  el.historyDate.value = todayKey;
+  renderHistoryByDate(todayKey);
+});
+
+// ===== Listeners extra =====
+el.exportBtn.addEventListener("click", exportSalesCSV);
+el.whatsappBtn.addEventListener("click", sendSalesToWhatsApp);
+
 // ===== Inicializar =====
 applyFiltersAndRender();
 renderSales();
+
+const todayKey = getTodayKey();
+if (el.historyDate) el.historyDate.value = todayKey;
+renderHistoryByDate(todayKey);
