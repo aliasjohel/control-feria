@@ -375,7 +375,7 @@ ${detalle}
 *Total vendido:* ${totalFormateado}`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-  window.open(url, "_blank");
+  window.location.href = url;
 }
 
 // ===== Inicializar =====
