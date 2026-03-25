@@ -42,9 +42,10 @@ const el = {
   undoBtn: document.querySelector("#undoBtn"),
 
   // Ingreso mercadería
-  restockProduct: document.querySelector("#restock-product"),
-  restockQty: document.querySelector("#restock-qty"),
-  restockForm: document.querySelector("#restockForm"),
+restockSearch: document.querySelector("#restock-search"),
+restockProduct: document.querySelector("#restock-product"),
+restockQty: document.querySelector("#restock-qty"),
+restockForm: document.querySelector("#restockForm"),
 
   // Ventas de hoy
   salesTbody: document.querySelector("#salesTbody"),
@@ -58,7 +59,8 @@ const el = {
   lowStockInput: document.querySelector("#lowStock"),
   newDayBtn: document.querySelector("#btnNewDay"),
   clearAllBtn: document.querySelector("#btnResetAll"),
-  exportBtn: document.querySelector("#btnExportCSV"),
+    exportBtn: document.querySelector("#btnExportCSV"),
+  whatsappBtn: document.querySelector("#btnWhatsApp"),
 };
 
 // ===== Seguridad =====
@@ -76,12 +78,30 @@ function normalize(txt) {
 
 // ===== Selects =====
 function updateSelects() {
-  const options = products
+  // Select de venta: todos los productos
+  el.saleProduct.innerHTML = products
     .map((p, i) => `<option value="${i}">${p.name}</option>`)
     .join("");
 
-  el.saleProduct.innerHTML = options;
-  el.restockProduct.innerHTML = options;
+  // Select de ingreso: filtrado por buscador
+  const q = normalize(el.restockSearch?.value || "");
+
+  const filtered = products
+    .map((p, i) => ({ ...p, originalIndex: i }))
+    .filter((p) => {
+      if (!q) return true;
+      return (
+        normalize(p.name).includes(q) ||
+        normalize(p.code).includes(q)
+      );
+    });
+
+  el.restockProduct.innerHTML = filtered
+    .map(
+      (p) =>
+        `<option value="${p.originalIndex}">${p.name}${p.code ? ` (${p.code})` : ""}</option>`
+    )
+    .join("");
 }
 
 // ===== Resumen (Fecha / Items / Total) =====
@@ -164,6 +184,7 @@ function renderSales() {
 el.searchName.addEventListener("input", applyFiltersAndRender);
 el.searchCode.addEventListener("input", applyFiltersAndRender);
 el.lowStockInput.addEventListener("input", applyFiltersAndRender);
+el.restockSearch.addEventListener("input", updateSelects);
 
 // ===== Agregar Producto =====
 el.addBtn.addEventListener("click", (e) => {
@@ -255,9 +276,11 @@ el.restockForm.addEventListener("submit", (e) => {
 
   products[idx].stock += qty;
 
+  el.restockQty.value = 1;
+  el.restockSearch.value = "";
+
   applyFiltersAndRender();
 });
-
 // ===== Nuevo día =====
 el.newDayBtn.addEventListener("click", () => {
   salesToday = [];
@@ -307,6 +330,53 @@ function exportSalesCSV() {
 }
 
 el.exportBtn.addEventListener("click", exportSalesCSV);
+
+el.whatsappBtn.addEventListener("click", sendSalesToWhatsApp);
+
+function sendSalesToWhatsApp() {
+  if (!salesToday.length) {
+    alert("No hay ventas cargadas hoy para enviar.");
+    return;
+  }
+
+  const now = new Date();
+  const fecha = now.toLocaleDateString("es-AR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const items = salesToday.reduce((acc, s) => acc + Number(s.qty || 0), 0);
+  const total = salesToday.reduce((acc, s) => acc + Number(s.total || 0), 0);
+
+  const detalle = salesToday
+    .map((s) => {
+      const totalLinea = Number(s.total || 0).toLocaleString("es-AR", {
+        style: "currency",
+        currency: "ARS",
+      });
+
+      return `• ${s.product} x${s.qty} = ${totalLinea}`;
+    })
+    .join("\n");
+
+  const totalFormateado = total.toLocaleString("es-AR", {
+    style: "currency",
+    currency: "ARS",
+  });
+
+  const mensaje =
+`*Ventas del día*
+Fecha: ${fecha}
+
+${detalle}
+
+*Total de items:* ${items}
+*Total vendido:* ${totalFormateado}`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, "_blank");
+}
 
 // ===== Inicializar =====
 applyFiltersAndRender();
