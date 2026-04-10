@@ -37,14 +37,15 @@ const el = {
   tableBody: document.querySelector("#products-body"),
 
   // Venta
-  saleProduct: document.querySelector("#sale-product"),
+  saleProductInput: document.querySelector("#sale-product-input"),
+  saleProductsList: document.querySelector("#sale-products-list"),
   saleQty: document.querySelector("#sale-qty"),
   saleForm: document.querySelector("#saleForm"),
   undoBtn: document.querySelector("#undoBtn"),
 
   // Ingreso mercadería
-  restockSearch: document.querySelector("#restock-search"),
-  restockProduct: document.querySelector("#restock-product"),
+  restockProductInput: document.querySelector("#restock-product-input"),
+  restockProductsList: document.querySelector("#restock-products-list"),
   restockQty: document.querySelector("#restock-qty"),
   restockForm: document.querySelector("#restockForm"),
 
@@ -56,6 +57,7 @@ const el = {
   soldItems: document.querySelector("#soldItems"),
   soldTotal: document.querySelector("#soldTotal"),
   topProduct: document.querySelector("#topProduct"),
+  stockTotal: document.querySelector("#stockTotal"),
 
   // Historial
   historyDate: document.querySelector("#historyDate"),
@@ -118,6 +120,32 @@ function formatDateLabel(dateKey) {
   });
 }
 
+// ===== Texto visible para sugerencias =====
+function getProductDisplayText(product) {
+  const codePart = product.code ? ` | Código: ${product.code}` : "";
+  return `${product.name}${codePart}`;
+}
+
+// ===== Buscar producto por texto escrito =====
+function findProductIndexByInputValue(inputValue) {
+  const q = normalize(inputValue.trim());
+  if (!q) return -1;
+
+  // Coincidencia exacta con el texto visible
+  const exactIndex = products.findIndex((p) => normalize(getProductDisplayText(p)) === q);
+  if (exactIndex !== -1) return exactIndex;
+
+  // Coincidencia exacta por nombre
+  const exactNameIndex = products.findIndex((p) => normalize(p.name) === q);
+  if (exactNameIndex !== -1) return exactNameIndex;
+
+  // Coincidencia exacta por código
+  const exactCodeIndex = products.findIndex((p) => normalize(p.code) === q);
+  if (exactCodeIndex !== -1) return exactCodeIndex;
+
+  return -1;
+}
+
 // ===== Estadísticas =====
 function getTopProduct(salesArray) {
   if (!salesArray.length) return "—";
@@ -142,32 +170,37 @@ function getTopProduct(salesArray) {
   return `${topName} (${topQty})`;
 }
 
-// ===== Selects =====
-function updateSelects() {
-  el.saleProduct.innerHTML = products
-    .map((p, i) => `<option value="${i}">${p.name}</option>`)
+// ===== Datalist =====
+function updateProductLists() {
+  const saleQuery = normalize(el.saleProductInput.value);
+  const restockQuery = normalize(el.restockProductInput.value);
+
+  const saleFiltered = products.filter((p) => {
+    if (!saleQuery) return true;
+    return (
+      normalize(p.name).includes(saleQuery) ||
+      normalize(p.code).includes(saleQuery)
+    );
+  });
+
+  const restockFiltered = products.filter((p) => {
+    if (!restockQuery) return true;
+    return (
+      normalize(p.name).includes(restockQuery) ||
+      normalize(p.code).includes(restockQuery)
+    );
+  });
+
+  el.saleProductsList.innerHTML = saleFiltered
+    .map((p) => `<option value="${getProductDisplayText(p)}"></option>`)
     .join("");
 
-  const q = normalize(el.restockSearch?.value || "");
-
-  const filtered = products
-    .map((p, i) => ({ ...p, originalIndex: i }))
-    .filter((p) => {
-      if (!q) return true;
-      return (
-        normalize(p.name).includes(q) ||
-        normalize(p.code).includes(q)
-      );
-    });
-
-  el.restockProduct.innerHTML = filtered
-    .map(
-      (p) => `<option value="${p.originalIndex}">${p.name}${p.code ? ` (${p.code})` : ""}</option>`
-    )
+  el.restockProductsList.innerHTML = restockFiltered
+    .map((p) => `<option value="${getProductDisplayText(p)}"></option>`)
     .join("");
 }
 
-// ===== Resumen (Fecha / Items / Total / Top producto) =====
+// ===== Resumen =====
 function renderSummary() {
   const todayKey = getTodayKey();
 
@@ -175,13 +208,17 @@ function renderSummary() {
 
   const items = salesToday.reduce((acc, s) => acc + Number(s.qty || 0), 0);
   const total = salesToday.reduce((acc, s) => acc + Number(s.total || 0), 0);
+  const stockValue = products.reduce((acc, p) => {
+    return acc + Number(p.price || 0) * Number(p.stock || 0);
+  }, 0);
 
   el.soldItems.textContent = String(items);
   el.soldTotal.textContent = formatCurrency(total);
   el.topProduct.textContent = getTopProduct(salesToday);
+  el.stockTotal.textContent = formatCurrency(stockValue);
 }
 
-// ===== Render Productos con filtro + stock bajo =====
+// ===== Render Productos =====
 function applyFiltersAndRender() {
   const qName = normalize(el.searchName.value);
   const qCode = normalize(el.searchCode.value);
@@ -214,7 +251,8 @@ function applyFiltersAndRender() {
     el.tableBody.appendChild(tr);
   });
 
-  updateSelects();
+  updateProductLists();
+  renderSummary();
   saveJSON("products", products);
 }
 
@@ -279,7 +317,8 @@ function saveCurrentDayToHistory() {
 el.searchName.addEventListener("input", applyFiltersAndRender);
 el.searchCode.addEventListener("input", applyFiltersAndRender);
 el.lowStockInput.addEventListener("input", applyFiltersAndRender);
-el.restockSearch.addEventListener("input", updateSelects);
+el.saleProductInput.addEventListener("input", updateProductLists);
+el.restockProductInput.addEventListener("input", updateProductLists);
 
 // ===== Agregar Producto =====
 el.addBtn.addEventListener("click", (e) => {
@@ -317,10 +356,15 @@ el.tableBody.addEventListener("click", (e) => {
 el.saleForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const idx = Number(el.saleProduct.value);
+  const idx = findProductIndexByInputValue(el.saleProductInput.value);
   const qty = Number(el.saleQty.value);
 
-  if (!products[idx] || qty <= 0) return;
+  if (idx === -1 || !products[idx]) {
+    alert("Elegí un producto válido de la lista.");
+    return;
+  }
+
+  if (qty <= 0) return;
 
   if (products[idx].stock < qty) {
     alert("Stock insuficiente");
@@ -344,6 +388,9 @@ el.saleForm.addEventListener("submit", (e) => {
   lastSale = { idx, qty };
 
   saveJSON("salesToday", salesToday);
+
+  el.saleQty.value = 1;
+  el.saleProductInput.value = "";
 
   applyFiltersAndRender();
   renderSales();
@@ -370,15 +417,20 @@ el.undoBtn.addEventListener("click", () => {
 el.restockForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
-  const idx = Number(el.restockProduct.value);
+  const idx = findProductIndexByInputValue(el.restockProductInput.value);
   const qty = Number(el.restockQty.value);
 
-  if (!products[idx] || qty <= 0) return;
+  if (idx === -1 || !products[idx]) {
+    alert("Elegí un producto válido de la lista.");
+    return;
+  }
+
+  if (qty <= 0) return;
 
   products[idx].stock += qty;
 
   el.restockQty.value = 1;
-  el.restockSearch.value = "";
+  el.restockProductInput.value = "";
 
   applyFiltersAndRender();
 });
@@ -411,6 +463,9 @@ el.clearAllBtn.addEventListener("click", () => {
   saveJSON("salesToday", salesToday);
   saveJSON("salesHistory", salesHistory);
 
+  el.saleProductInput.value = "";
+  el.restockProductInput.value = "";
+
   applyFiltersAndRender();
   renderSales();
   renderHistoryByDate(getTodayKey());
@@ -439,7 +494,7 @@ function exportSalesCSV() {
   URL.revokeObjectURL(url);
 }
 
-// ===== WhatsApp estilo ticket =====
+// ===== WhatsApp =====
 function sendSalesToWhatsApp() {
   if (!salesToday.length) {
     alert("No hay ventas cargadas hoy para enviar.");
