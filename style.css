@@ -1,6 +1,24 @@
 .card { border-radius: 16px; }
 .table td, .table th { vertical-align: middle; }
 
+.product-list-scroll {
+  max-height: min(52vh, 440px);
+  overflow-y: auto;
+}
+
+.product-list-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bs-table-bg);
+}
+
+@media (max-width: 575.98px) {
+  .product-list-scroll {
+    max-height: 48vh;
+  }
+}
+
 /* resaltado stock bajo */
 .low-stock {
   border: 1px solid rgba(255,0,0,.35);
