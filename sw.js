@@ -1,4 +1,4 @@
-const CACHE_NAME = "control-feria-v3";
+const CACHE_NAME = "control-feria-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
