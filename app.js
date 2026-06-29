@@ -19,6 +19,7 @@ let products = loadJSON("products", []);
 let salesToday = loadJSON("salesToday", []);
 let salesHistory = loadJSON("salesHistory", {});
 let lastSale = null;
+let editingProductIndex = null;
 
 // ===== Elementos =====
 const el = {
@@ -27,7 +28,9 @@ const el = {
   code: document.querySelector("#pCode"),
   price: document.querySelector("#pPrice"),
   stock: document.querySelector("#pStock"),
+  productForm: document.querySelector("#productForm"),
   addBtn: document.querySelector("#add-product"),
+  cancelEditBtn: document.querySelector("#cancel-edit-product"),
 
   // Búsquedas
   searchName: document.querySelector("#search"),
@@ -146,6 +149,35 @@ function findProductIndexByInputValue(inputValue) {
   return -1;
 }
 
+// ===== Formulario producto =====
+function resetProductForm() {
+  editingProductIndex = null;
+  el.name.value = "";
+  el.code.value = "";
+  el.price.value = "";
+  el.stock.value = "";
+  el.addBtn.textContent = "Agregar";
+  el.addBtn.classList.remove("btn-success");
+  el.addBtn.classList.add("btn-primary");
+  el.cancelEditBtn.classList.add("d-none");
+}
+
+function fillProductForm(index) {
+  const product = products[index];
+  if (!product) return;
+
+  editingProductIndex = index;
+  el.name.value = product.name;
+  el.code.value = product.code || "";
+  el.price.value = product.price;
+  el.stock.value = product.stock;
+  el.addBtn.textContent = "Guardar cambios";
+  el.addBtn.classList.remove("btn-primary");
+  el.addBtn.classList.add("btn-success");
+  el.cancelEditBtn.classList.remove("d-none");
+  el.name.focus();
+}
+
 // ===== Estadísticas =====
 function getTopProduct(salesArray) {
   if (!salesArray.length) return "—";
@@ -244,6 +276,7 @@ function applyFiltersAndRender() {
       <td class="text-end">${formatCurrency(p.price)}</td>
       <td class="text-end fw-semibold">${p.stock}</td>
       <td class="text-end">
+        <button class="btn btn-sm btn-outline-info me-1" data-edit="${i}">Editar</button>
         <button class="btn btn-sm btn-outline-danger" data-del="${i}">Eliminar</button>
       </td>
     `;
@@ -320,8 +353,8 @@ el.lowStockInput.addEventListener("input", applyFiltersAndRender);
 el.saleProductInput.addEventListener("input", updateProductLists);
 el.restockProductInput.addEventListener("input", updateProductLists);
 
-// ===== Agregar Producto =====
-el.addBtn.addEventListener("click", (e) => {
+// ===== Agregar / Editar Producto =====
+el.productForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
   const name = el.name.value.trim();
@@ -331,23 +364,38 @@ el.addBtn.addEventListener("click", (e) => {
 
   if (!name || !(price >= 0) || !(stock >= 0)) return;
 
-  products.push({ name, code, price, stock });
+  if (editingProductIndex !== null && products[editingProductIndex]) {
+    products[editingProductIndex] = { name, code, price, stock };
+  } else {
+    products.push({ name, code, price, stock });
+  }
 
-  el.name.value = "";
-  el.code.value = "";
-  el.price.value = "";
-  el.stock.value = "";
+  resetProductForm();
 
   applyFiltersAndRender();
 });
 
-// ===== Eliminar Producto =====
+el.cancelEditBtn.addEventListener("click", resetProductForm);
+
+// ===== Editar / Eliminar Producto =====
 el.tableBody.addEventListener("click", (e) => {
+  const editBtn = e.target.closest("[data-edit]");
+  if (editBtn) {
+    fillProductForm(Number(editBtn.dataset.edit));
+    return;
+  }
+
   const btn = e.target.closest("[data-del]");
   if (!btn) return;
 
   const i = Number(btn.dataset.del);
   products.splice(i, 1);
+
+  if (editingProductIndex === i) {
+    resetProductForm();
+  } else if (editingProductIndex !== null && editingProductIndex > i) {
+    editingProductIndex -= 1;
+  }
 
   applyFiltersAndRender();
 });
@@ -556,3 +604,12 @@ renderSales();
 const todayKey = getTodayKey();
 if (el.historyDate) el.historyDate.value = todayKey;
 renderHistoryByDate(todayKey);
+
+// ===== PWA =====
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch((error) => {
+      console.warn("No se pudo registrar el service worker:", error);
+    });
+  });
+}
