@@ -52,11 +52,16 @@
               <div class="text-secondary small">Valor total en stock</div>
               <div id="stockTotal" class="fw-semibold">$0</div>
             </div>
-            <div class="d-flex align-items-end gap-2">
+            <div class="d-flex flex-wrap align-items-end gap-2">
               <div>
-                <div class="text-secondary small">Stock bajo (≤)</div>
+                <label for="lowStock" class="text-secondary small">Stock bajo (≤)</label>
                 <input id="lowStock" class="form-control form-control-sm bg-dark text-light border-secondary"
                        type="number" min="0" step="1" value="3" style="max-width:90px;">
+              </div>
+              <div>
+                <label for="warningStock" class="text-warning small">Stock en amarillo (≤)</label>
+                <input id="warningStock" class="form-control form-control-sm bg-dark text-light border-warning"
+                       type="number" min="0" step="1" value="5" style="max-width:90px;">
               </div>
               <button id="undoBtn" type="button" class="btn btn-sm btn-outline-light">Deshacer última venta</button>
             </div>

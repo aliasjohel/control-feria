@@ -74,6 +74,7 @@ const el = {
 
   // Otros
   lowStockInput: document.querySelector("#lowStock"),
+  warningStockInput: document.querySelector("#warningStock"),
   newDayBtn: document.querySelector("#btnNewDay"),
   clearAllBtn: document.querySelector("#btnResetAll"),
   exportBtn: document.querySelector("#btnExportCSV"),
@@ -258,6 +259,7 @@ function applyFiltersAndRender() {
   el.tableBody.innerHTML = "";
 
   const lowLimit = Number(el.lowStockInput.value ?? 0);
+  const warningLimit = Number(el.warningStockInput.value ?? 0);
 
   products.forEach((p, i) => {
     const okName = !qName || normalize(p.name).includes(qName);
@@ -267,8 +269,12 @@ function applyFiltersAndRender() {
 
     const tr = document.createElement("tr");
 
-    const isLow = Number(p.stock) <= lowLimit;
+    const currentStock = Number(p.stock);
+    const isLow = currentStock <= lowLimit;
+    const isWarning = !isLow && currentStock <= warningLimit;
+
     if (isLow) tr.classList.add("table-danger");
+    if (isWarning) tr.classList.add("table-warning");
 
     tr.innerHTML = `
       <td>${p.name}</td>
@@ -350,6 +356,7 @@ function saveCurrentDayToHistory() {
 el.searchName.addEventListener("input", applyFiltersAndRender);
 el.searchCode.addEventListener("input", applyFiltersAndRender);
 el.lowStockInput.addEventListener("input", applyFiltersAndRender);
+el.warningStockInput.addEventListener("input", applyFiltersAndRender);
 el.saleProductInput.addEventListener("input", updateProductLists);
 el.restockProductInput.addEventListener("input", updateProductLists);
 
