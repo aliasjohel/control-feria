@@ -31,8 +31,13 @@
   }
 }
 
-/* resaltado stock bajo */
-.low-stock {
-  border: 1px solid rgba(255,0,0,.35);
-  background: rgba(255,0,0,.08);
+/* Resaltado rojo más definido para productos con stock bajo */
+.table-danger {
+  --bs-table-color: #fff;
+  --bs-table-bg: #9f2635;
+  --bs-table-border-color: #c34a58;
+  --bs-table-striped-color: #fff;
+  --bs-table-striped-bg: #942330;
+  --bs-table-hover-color: #fff;
+  --bs-table-hover-bg: #ad3040;
 }
