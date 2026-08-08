@@ -13,6 +13,11 @@
   color: #e9ecef !important;
 }
 
+/* Mantiene legible el número de stock sobre el resaltado amarillo. */
+#products-body .table-warning .fw-semibold {
+  color: #212529;
+}
+
 .product-list-scroll {
   max-height: min(52vh, 440px);
   overflow-y: auto;
