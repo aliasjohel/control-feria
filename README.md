@@ -11,6 +11,7 @@ Aplicación web para control de stock y ventas diarias.
 - Autocompletado en ventas
 - Historial por fecha
 - Exportación a CSV
+- Copia de seguridad para transferir productos, stock y ventas entre dispositivos
 - Envío de resumen por WhatsApp
 - Cálculo automático del total vendido
 - Cálculo del valor total en stock

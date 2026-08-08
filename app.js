@@ -79,6 +79,9 @@ const el = {
   clearAllBtn: document.querySelector("#btnResetAll"),
   exportBtn: document.querySelector("#btnExportCSV"),
   whatsappBtn: document.querySelector("#btnWhatsApp"),
+  exportBackupBtn: document.querySelector("#btnExportBackup"),
+  importBackupBtn: document.querySelector("#btnImportBackup"),
+  backupFile: document.querySelector("#backupFile"),
 };
 
 // ===== Seguridad =====
@@ -549,6 +552,109 @@ function exportSalesCSV() {
   URL.revokeObjectURL(url);
 }
 
+// ===== Copia de seguridad =====
+function downloadFile(contents, type, filename) {
+  const blob = new Blob([contents], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function exportBackup() {
+  const backup = {
+    app: "control-feria",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: {
+      products,
+      salesToday,
+      salesHistory,
+      settings: {
+        lowStock: Number(el.lowStockInput.value || 0),
+        warningStock: Number(el.warningStockInput.value || 0),
+      },
+    },
+  };
+
+  const filename = `control-feria-respaldo-${getTodayKey()}.json`;
+  downloadFile(JSON.stringify(backup, null, 2), "application/json", filename);
+}
+
+function isValidBackup(backup) {
+  if (!backup || backup.app !== "control-feria" || backup.version !== 1) return false;
+
+  const data = backup.data;
+  if (!data || !Array.isArray(data.products) || !Array.isArray(data.salesToday)) return false;
+  if (!data.salesHistory || typeof data.salesHistory !== "object" || Array.isArray(data.salesHistory)) return false;
+
+  const validProducts = data.products.every((product) =>
+    product &&
+    typeof product.name === "string" &&
+    Number.isFinite(Number(product.price)) &&
+    Number.isFinite(Number(product.stock))
+  );
+  const validSalesToday = data.salesToday.every((sale) => sale && typeof sale.product === "string");
+  const validHistory = Object.values(data.salesHistory).every((sales) =>
+    Array.isArray(sales) && sales.every((sale) => sale && typeof sale.product === "string")
+  );
+
+  return validProducts && validSalesToday && validHistory;
+}
+
+async function importBackup(file) {
+  try {
+    const backup = JSON.parse(await file.text());
+
+    if (!isValidBackup(backup)) {
+      alert("El archivo no es una copia válida de Control Feria.");
+      return;
+    }
+
+    const productCount = backup.data.products.length;
+    const shouldImport = confirm(
+      `La copia contiene ${productCount} producto(s).\n\n` +
+      "Al importarla se reemplazarán los productos, el stock y las ventas de este celular. ¿Continuar?"
+    );
+    if (!shouldImport) return;
+
+    products = backup.data.products;
+    salesToday = backup.data.salesToday;
+    salesHistory = backup.data.salesHistory;
+    lastSale = null;
+
+    saveJSON("products", products);
+    saveJSON("salesToday", salesToday);
+    saveJSON("salesHistory", salesHistory);
+
+    const settings = backup.data.settings || {};
+    if (Number.isFinite(Number(settings.lowStock))) {
+      el.lowStockInput.value = String(Number(settings.lowStock));
+    }
+    if (Number.isFinite(Number(settings.warningStock))) {
+      el.warningStockInput.value = String(Number(settings.warningStock));
+    }
+
+    resetProductForm();
+    el.saleProductInput.value = "";
+    el.restockProductInput.value = "";
+    applyFiltersAndRender();
+    renderSales();
+    el.historyDate.value = getTodayKey();
+    renderHistoryByDate(getTodayKey());
+
+    alert("Copia importada correctamente.");
+  } catch {
+    alert("No se pudo leer el archivo. Elegí una copia exportada desde Control Feria.");
+  }
+}
+
 // ===== WhatsApp =====
 function sendSalesToWhatsApp() {
   if (!salesToday.length) {
@@ -603,6 +709,15 @@ el.todayHistoryBtn.addEventListener("click", () => {
 // ===== Listeners extra =====
 el.exportBtn.addEventListener("click", exportSalesCSV);
 el.whatsappBtn.addEventListener("click", sendSalesToWhatsApp);
+el.exportBackupBtn.addEventListener("click", exportBackup);
+el.importBackupBtn.addEventListener("click", () => {
+  el.backupFile.value = "";
+  el.backupFile.click();
+});
+el.backupFile.addEventListener("change", () => {
+  const [file] = el.backupFile.files;
+  if (file) importBackup(file);
+});
 
 // ===== Inicializar =====
 applyFiltersAndRender();
